@@ -1,12 +1,12 @@
 use serde::{Serialize, Deserialize};
 use diesel::prelude::*;
-use chrono::{self,DateTime, TimeZone, Utc};
-use chrono::serde::ts_seconds::deserialize as from_ts;
-use chrono::serde::ts_seconds_option;
+use chrono::{self,DateTime, Utc, NaiveDateTime};
+
+use crate::schema::Event;
 
 
-#[derive(Queryable, Serialize, Deserialize, Debug)]
-pub struct PEvent {
+#[derive(Queryable, Serialize, Deserialize, Debug, Clone)]
+pub struct APIEvent {
     #[serde(skip_deserializing)]
     pub id: i32,
     pub datetime: DateTime<Utc>,
@@ -18,9 +18,22 @@ pub struct PEvent {
     pub r#type: String,
     pub location: Location,
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 
 pub struct Location {
-    name: String,
-    gps: String
+   pub name: String,
+   pub gps: String
+}
+
+#[derive(diesel::Insertable)]
+#[table_name = "Event"]
+pub struct DBEvent {
+    pub datetime: NaiveDateTime,
+    pub eventID: i32,
+    pub name: String,
+    pub summary: String,
+    pub url: String,
+    pub type_: String,
+    pub locationName: String,
+    pub locationGps: String
 }
