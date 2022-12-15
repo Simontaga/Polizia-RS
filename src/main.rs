@@ -3,33 +3,34 @@ use diesel::insert_into;
 use diesel::prelude::*;
 use dotenvy::dotenv;
 use polizia_rs::models::APIEvent;
-use polizia_rs::models::DBEvent;
-use polizia_rs::schema::Event;
 use std::env;
-use std::f32::consts::E;
+use std::{thread, time};
 mod schema;
 mod models;
 use self::schema::Event::dsl::*;
-use serde::{Serialize, Deserialize};
-use diesel::prelude::*;
-use chrono::{self,DateTime, TimeZone, Utc};
-use chrono::serde::ts_seconds::deserialize as from_ts;
-use chrono::serde::ts_seconds_option;
-
+use std::thread::sleep;
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
+    let interval_env = env::var("SCAN_INTERVAL_SECONDS").expect("Missing SCAN_INTERVAL_SECONDS Env Var");
+    let interval = time::Duration::from_secs(interval_env.parse::<u64>().unwrap());
+
     let mut connection = establish_connection();
-    let events: Vec<APIEvent> = get_api_response().await;
-    update_events(&mut connection, events).await;
+
+    loop {
+        let events: Vec<APIEvent> = get_api_response().await;
+        update_events(&mut connection, events).await;
+        thread::sleep(interval);
+    }
 }
 
 async fn update_events(connection: &mut MysqlConnection, Events: Vec<APIEvent>) {
     for i in 0..Events.len() {
+        println!("Progress: {}/{}", i+1, Events.len());
         let event = Events[i].clone();
         let exists = does_event_exist(connection, event.clone()).await;
         if exists { continue; }
-        println!("Event does not exist");
         insert_new_event(connection, event)
     }
 }
@@ -61,7 +62,6 @@ async fn does_event_exist(connection: &mut MysqlConnection, APIEvent : APIEvent)
 }
 
  fn establish_connection() -> MysqlConnection {
-    dotenv().ok();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     MysqlConnection::establish(&database_url)
