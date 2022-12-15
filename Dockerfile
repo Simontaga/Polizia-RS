@@ -8,6 +8,7 @@ RUN apt-get install -y libssl-dev
 RUN apt-get install -y libmariadb-dev-compat
 RUN apt-get install -y libmariadb-dev
 RUN apt-get install -y default-libmysqlclient-dev
+RUN apt-get install -y ca-certificates
 
 RUN rm -rf /var/lib/apt/lists/*
 COPY --from=builder ./target/release/polizia_rs ./target/release/polizia_rs
