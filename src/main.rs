@@ -8,7 +8,7 @@ use std::{thread, time};
 mod schema;
 mod models;
 use self::schema::Event::dsl::*;
-use std::thread::sleep;
+
 
 #[tokio::main]
 async fn main() {
@@ -25,37 +25,41 @@ async fn main() {
     }
 }
 
-async fn update_events(connection: &mut MysqlConnection, Events: Vec<APIEvent>) {
-    for i in 0..Events.len() {
-        println!("Progress: {}/{}", i+1, Events.len());
-        let event = Events[i].clone();
+async fn update_events(connection: &mut MysqlConnection, events: Vec<APIEvent>) {
+    for i in 0..events.len() {
+        println!("Progress: {}/{}", i+1, events.len());
+        let event = events[i].clone();
         let exists = does_event_exist(connection, event.clone()).await;
         if exists { continue; }
         insert_new_event(connection, event)
     }
 }
 
-fn insert_new_event(connection: &mut MysqlConnection, APIEvent: APIEvent) {
+fn insert_new_event(connection: &mut MysqlConnection, apievent: APIEvent) {
     let dbevent = models::DBEvent {
-        eventID: APIEvent.eventID,
-        datetime: APIEvent.datetime.naive_local(),
-        locationGps: APIEvent.location.gps,
-        locationName: APIEvent.location.name,
-        summary: APIEvent.summary,
-        url: APIEvent.url,
-        name: APIEvent.name,
-        type_: APIEvent.r#type,
+        eventID: apievent.eventID,
+        datetime: apievent.datetime.naive_local(),
+        locationGps: apievent.location.gps,
+        locationName: apievent.location.name,
+        summary: apievent.summary,
+        url: apievent.url,
+        name: apievent.name,
+        type_: apievent.r#type,
     };
 
-    insert_into(Event).values(&dbevent).execute(connection);
+    let rows = insert_into(Event).values(&dbevent).execute(connection);
+
+    if rows.is_err() {
+        println!("Failed to insert row");
+    }
 }
 
-async fn does_event_exist(connection: &mut MysqlConnection, APIEvent : APIEvent) -> bool {
-    let search = Event.filter(eventID.eq(APIEvent.eventID));
+async fn does_event_exist(connection: &mut MysqlConnection, apievent : APIEvent) -> bool {
+    let search = Event.filter(eventID.eq(apievent.eventID));
     let res: Result<i64, diesel::result::Error> = search.count().get_result(connection);
     match res {
         Ok(c) => { if c > 0 { return true; } },
-        Err(_) => { println!("{}", "Could not get execute query count exisiting events") }
+        Err(_) => { println!("Could not get execute query count exisiting events") }
     }
 
     false
