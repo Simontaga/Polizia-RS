@@ -70,7 +70,7 @@ async fn does_event_exist(connection: &mut MysqlConnection, APIEvent : APIEvent)
 
 async fn get_api_response() -> Vec<APIEvent>
 {
-    let response = reqwest::get("https://polisen.se/api/events")
+    let response = reqwest::get("http://polisen.se/api/events")
         .await.unwrap();
 
     let events = response.json::<Vec<APIEvent>>().await.unwrap();
